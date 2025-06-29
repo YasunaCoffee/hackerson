@@ -63,6 +63,11 @@ def upload_file():
         if not text.strip():
             return jsonify({'error': 'テキストを入力してください'}), 400
         
+        # スタイル情報取得
+        text_color = request.form.get('color', '#ffffff')
+        text_size = int(request.form.get('size', 40))
+        text_style = request.form.get('style', 'normal')
+        
         # ファイル保存
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{uuid.uuid4()}_{filename}")
@@ -75,7 +80,7 @@ def upload_file():
         audio_data = generate_voice(text)
         
         # アニメーションGIF作成
-        gif_data = create_animated_gif(processed_image, text)
+        gif_data = create_animated_gif(processed_image, text, text_color, text_size, text_style)
         
         # ZIPファイル作成
         zip_data = create_zip_package(gif_data, audio_data, text)
@@ -165,41 +170,98 @@ def create_dummy_audio():
     
     return buffer.getvalue()
 
-def create_animated_gif(base_image, text):
+def create_animated_gif(base_image, text, text_color, text_size, text_style):
     """画像と文字のアニメーションGIF作成"""
     frames = []
     
-    # フォント設定（デフォルトフォント使用）
-    try:
-        font = ImageFont.truetype("arial.ttf", 24)
-    except:
-        font = ImageFont.load_default()
+    # 日本語フォント設定（Windows対応）
+    font = None
+    font_size = text_size
+    
+    # Windows用フォントパス
+    font_paths = [
+        "C:/Windows/Fonts/meiryo.ttc",      # メイリオ
+        "C:/Windows/Fonts/msgothic.ttc",    # MSゴシック
+        "C:/Windows/Fonts/msmincho.ttc",    # MS明朝
+        "C:/Windows/Fonts/arial.ttf",       # Arial
+        "C:/Windows/Fonts/calibri.ttf",     # Calibri
+    ]
+    
+    # 利用可能なフォントを探す
+    for font_path in font_paths:
+        try:
+            font = ImageFont.truetype(font_path, font_size)
+            print(f"フォント読み込み成功: {font_path}")
+            break
+        except Exception as e:
+            print(f"フォント読み込み失敗: {font_path} - {e}")
+            continue
+    
+    # フォントが見つからない場合はデフォルトフォントを使用
+    if font is None:
+        try:
+            font = ImageFont.load_default()
+            print("デフォルトフォントを使用")
+        except Exception as e:
+            print(f"デフォルトフォントも読み込み失敗: {e}")
+            # フォントなしでテキスト描画をスキップ
+            font = None
+    
+    # 色をRGBに変換
+    def hex_to_rgb(hex_color):
+        hex_color = hex_color.lstrip('#')
+        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+    
+    text_rgb = hex_to_rgb(text_color)
     
     # アニメーションフレーム作成
     for i in range(10):
         # 画像をコピー
         frame = base_image.copy()
-        draw = ImageDraw.Draw(frame)
         
-        # テキストの位置計算
-        bbox = draw.textbbox((0, 0), text, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-        
-        x = (240 - text_width) // 2
-        y = 200 - text_height  # 下部に配置
-        
-        # フェードイン効果
-        alpha = int(255 * (i + 1) / 10)
-        
-        # テキスト描画（白文字+黒縁取り）
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                if dx == 0 and dy == 0:
-                    continue
-                draw.text((x + dx, y + dy), text, font=font, fill=(0, 0, 0, alpha))
-        
-        draw.text((x, y), text, font=font, fill=(255, 255, 255, alpha))
+        if font is not None:
+            draw = ImageDraw.Draw(frame)
+            
+            # テキストの位置計算
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            
+            x = (240 - text_width) // 2
+            y = 200 - text_height  # 下部に配置
+            
+            # フェードイン効果
+            alpha = int(255 * (i + 1) / 10)
+            
+            # スタイルに応じたテキスト描画
+            if text_style == 'normal':
+                # 通常のテキスト
+                draw.text((x, y), text, font=font, fill=text_rgb + (alpha,))
+                
+            elif text_style == 'bold':
+                # 太字効果（複数回描画）
+                for dx in [-1, 0, 1]:
+                    for dy in [-1, 0, 1]:
+                        draw.text((x + dx, y + dy), text, font=font, fill=text_rgb + (alpha,))
+                        
+            elif text_style == 'outline':
+                # 縁取り効果
+                outline_color = (0, 0, 0)  # 黒い縁取り
+                for dx in [-2, -1, 0, 1, 2]:
+                    for dy in [-2, -1, 0, 1, 2]:
+                        if dx == 0 and dy == 0:
+                            continue
+                        draw.text((x + dx, y + dy), text, font=font, fill=outline_color + (alpha,))
+                draw.text((x, y), text, font=font, fill=text_rgb + (alpha,))
+                
+            elif text_style == 'shadow':
+                # 影付き効果
+                shadow_color = (0, 0, 0)  # 黒い影
+                shadow_offset = 3
+                # 影を描画
+                draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=shadow_color + (alpha,))
+                # メインテキストを描画
+                draw.text((x, y), text, font=font, fill=text_rgb + (alpha,))
         
         frames.append(frame)
     

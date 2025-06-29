@@ -219,6 +219,124 @@
         .info li {
             margin-bottom: 5px;
         }
+
+        .style-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .style-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .style-group label {
+            display: block;
+            min-width: 80px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .color-picker {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .color-picker input[type="color"] {
+            width: 50px;
+            height: 40px;
+            padding: 0;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .color-presets {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .color-btn {
+            width: 25px;
+            height: 25px;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .color-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .size-slider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .size-slider input[type="range"] {
+            flex: 1;
+            height: 8px;
+            -webkit-appearance: none;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .size-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .size-slider span {
+            min-width: 50px;
+            text-align: center;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .style-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .style-btn {
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .style-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        .style-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -251,6 +369,44 @@
                     {% for text in preset_texts %}
                     <button class="preset-btn" onclick="setText('{{ text }}')">{{ text }}</button>
                     {% endfor %}
+                </div>
+
+                <h3>🎨 文字スタイル</h3>
+                <div class="style-section">
+                    <div class="style-group">
+                        <label>文字色:</label>
+                        <div class="color-picker">
+                            <input type="color" id="textColor" value="#ffffff" class="color-input">
+                            <div class="color-presets">
+                                <button class="color-btn" style="background: #ffffff; border: 2px solid #333;" onclick="setColor('#ffffff')"></button>
+                                <button class="color-btn" style="background: #ff6b6b;" onclick="setColor('#ff6b6b')"></button>
+                                <button class="color-btn" style="background: #4ecdc4;" onclick="setColor('#4ecdc4')"></button>
+                                <button class="color-btn" style="background: #45b7d1;" onclick="setColor('#45b7d1')"></button>
+                                <button class="color-btn" style="background: #96ceb4;" onclick="setColor('#96ceb4')"></button>
+                                <button class="color-btn" style="background: #feca57;" onclick="setColor('#feca57')"></button>
+                                <button class="color-btn" style="background: #ff9ff3;" onclick="setColor('#ff9ff3')"></button>
+                                <button class="color-btn" style="background: #54a0ff;" onclick="setColor('#54a0ff')"></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="style-group">
+                        <label>文字サイズ:</label>
+                        <div class="size-slider">
+                            <input type="range" id="textSize" min="20" max="60" value="40" class="slider">
+                            <span id="sizeValue">40px</span>
+                        </div>
+                    </div>
+
+                    <div class="style-group">
+                        <label>文字スタイル:</label>
+                        <div class="style-buttons">
+                            <button class="style-btn active" onclick="setStyle('normal')">通常</button>
+                            <button class="style-btn" onclick="setStyle('bold')">太字</button>
+                            <button class="style-btn" onclick="setStyle('outline')">縁取り</button>
+                            <button class="style-btn" onclick="setStyle('shadow')">影付き</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -290,6 +446,33 @@
         const loading = document.getElementById('loading');
         const error = document.getElementById('error');
         const success = document.getElementById('success');
+
+        // スタイル設定
+        let currentColor = '#ffffff';
+        let currentSize = 40;
+        let currentStyle = 'normal';
+
+        // サイズスライダーの更新
+        document.getElementById('textSize').addEventListener('input', function(e) {
+            currentSize = parseInt(e.target.value);
+            document.getElementById('sizeValue').textContent = currentSize + 'px';
+        });
+
+        // 色設定
+        function setColor(color) {
+            currentColor = color;
+            document.getElementById('textColor').value = color;
+        }
+
+        // スタイル設定
+        function setStyle(style) {
+            currentStyle = style;
+            // ボタンのアクティブ状態を更新
+            document.querySelectorAll('.style-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
 
         // ファイルアップロード処理
         uploadArea.addEventListener('click', () => fileInput.click());
@@ -374,6 +557,9 @@
             const formData = new FormData();
             formData.append('image', file);
             formData.append('text', text);
+            formData.append('color', currentColor);
+            formData.append('size', currentSize);
+            formData.append('style', currentStyle);
 
             // UI更新
             generateBtn.disabled = true;
