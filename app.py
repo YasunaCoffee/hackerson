@@ -3,7 +3,13 @@ from werkzeug.utils import secure_filename
 import os
 import requests
 import json
-from PIL import Image, ImageDraw, ImageFont
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    # Pillowがインストールされていない場合の代替
+    print("Pillowライブラリがインストールされていません。")
+    print("pip install Pillow を実行してください。")
+    exit(1)
 import imageio
 import io
 import zipfile
